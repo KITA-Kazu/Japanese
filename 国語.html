@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高校国語 早押しクイズ</title>
+    <style>
+        body {
+            font-family: "游ゴシック体", YuGothic, "游ゴシック", "Yu Gothic", sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #fdfaf6; 
+            color: #4a3b31; 
+        }
+
+        #quiz-container {
+            background-color: #fff;
+            padding: 25px; 
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            width: 90%;
+            max-width: 750px; 
+            text-align: center;
+        }
+
+        #start-screen h1 {
+            color: #8c6d62; 
+            font-weight: 600;
+        }
+
+        #start-screen button,
+        #quiz-screen button.choice-btn,
+        #quiz-screen #next-question-btn,
+        #result-screen button {
+            background-color: #8c6d62;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            margin: 10px 5px;
+            border-radius: 8px; 
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+        }
+
+        #start-screen button:hover,
+        #quiz-screen button.choice-btn:hover:not(:disabled),
+        #quiz-screen #next-question-btn:hover,
+        #result-screen button:hover {
+            background-color: #785b50;
+            transform: translateY(-2px); 
+        }
+
+        #quiz-screen {
+            display: none;
+        }
+
+        #timer-container {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #c0392b; 
+        }
+        
+        #progress-bar-container {
+            width: 100%;
+            background-color: #ede7e1;
+            border-radius: .25rem;
+            margin-bottom: 15px;
+            height: 20px;
+        }
+
+        #progress-bar {
+            width: 100%;
+            height: 100%;
+            background-color: #5cb85c; 
+            border-radius: .25rem;
+            transition: width 0.1s linear;
+        }
+
+        #score-container {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            color: #558b78; 
+        }
+
+        #question-theme {
+            font-size: 1em; 
+            color: #a0857b;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        #question-text {
+            font-size: 1.7em; 
+            margin-bottom: 25px;
+            min-height: 70px; 
+            line-height: 1.5; 
+            color: #333;
+        }
+
+        #choices-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px; 
+        }
+
+        #quiz-screen button.choice-btn {
+            background-color: #b0998e;
+            width: 100%;
+            min-height: 75px; 
+            font-size: 1.15em; 
+            line-height: 1.3; 
+        }
+
+        #quiz-screen button.choice-btn.correct {
+            background-color: #5cb85c !important; 
+        }
+        #quiz-screen button.choice-btn.incorrect {
+            background-color: #d9534f !important; 
+        }
+        #quiz-screen button.choice-btn:disabled {
+            opacity: 0.75;
+            cursor: not-allowed;
+        }
+
+
+        #feedback {
+            margin-top: 20px;
+            font-size: 1.3em; 
+            font-weight: bold;
+            min-height: 35px;
+        }
+        #feedback.correct {
+            color: #5cb85c;
+        }
+        #feedback.incorrect {
+            color: #d9534f;
+        }
+
+        #next-question-btn {
+            margin-top: 25px;
+            background-color: #f0ad4e;
+            color: #fff;
+        }
+        #next-question-btn:hover {
+            background-color: #ec971f;
+        }
+
+        #result-screen {
+            display: none; 
+        }
+        #result-screen h2 {
+            color: #5cb85c;
+        }
+    </style>
+</head>
+<body>
+
+<div id="quiz-container">
+    <div id="start-screen">
+        <h1>高校国語 早押しクイズ</h1>
+        <p>挑戦するテーマを選んでください：</p>
+        <button onclick="startQuiz('漢字・語彙マスター')">漢字・語彙マスター (10問)</button>
+        <button onclick="startQuiz('古文単語・文法')">古文単語・文法 (10問)</button>
+        <button onclick="startQuiz('漢文基礎')">漢文基礎 (10問)</button>
+    </div>
+
+    <div id="quiz-screen">
+        <div id="timer-container">残り時間: <span id="time-left">15</span>秒</div>
+        <div id="progress-bar-container">
+            <div id="progress-bar"></div>
+        </div>
+        <div id="score-container">スコア: <span id="current-score">0</span></div>
+        <hr>
+        <div id="question-number"></div>
+        <div id="question-theme"></div>
+        <div id="question-text"></div>
+        <div id="choices-container">
+            <button class="choice-btn" id="choice0" onclick="selectAnswer(0)"></button>
+            <button class="choice-btn" id="choice1" onclick="selectAnswer(1)"></button>
+            <button class="choice-btn" id="choice2" onclick="selectAnswer(2)"></button>
+            <button class="choice-btn" id="choice3" onclick="selectAnswer(3)"></button>
+        </div>
+        <div id="feedback"></div>
+        <button id="next-question-btn" onclick="loadNextQuestion()" style="display:none;">次の問題へ</button>
+    </div>
+
+    <div id="result-screen">
+        <h2>クイズ終了！</h2>
+        <p>最終スコア: <span id="final-score">0</span></p>
+        <p>全 <span id="total-questions-result">0</span> 問中 <span id="correct-answers-result">0</span> 問正解</p>
+        <button onclick="restartQuiz()">もう一度挑戦する</button>
+    </div>
+</div>
+
+<script>
+    const allQuizzes = {
+        "漢字・語彙マスター": [
+            { question: "「脆弱」の正しい読みは？", choices: ["きじゃく", "ぜいじゃく", "そうじゃく", "せつじゃく"], answer: 1 },
+            { question: "「計画が暗礁に乗り上げる」の「暗礁」の意味は？", choices: ["明るい未来", "困難な計画", "隠れた岩", "秘密の会議"], answer: 2 },
+            { question: "「こっけい」と読む漢字はどれ？", choices: ["国境", "黒軽", "骨形", "滑稽"], answer: 3 },
+            { question: "「危急存亡の秋」。この「秋」が意味するものは？", choices: ["重要な時", "収穫の季節", "物悲しい時期", "終わりの時"], answer: 0 },
+            { question: "次のうち、意味が他と異なるものは？", choices: ["迅速", "緩慢", "敏速", "疾風迅雷"], answer: 1 },
+            { question: "「絵に描いた餅」と似た意味のことわざは？", choices: ["棚からぼたもち", "案ずるより産むが易し", "砂上の楼閣", "焼け石に水"], answer: 2 },
+            { question: "「彼の話は（　　）を得ている」。（　）に入るのは？", choices: ["要項", "要目", "要点", "要領"], answer: 2 },
+            { question: "「杞憂」の語源となった故事は何に関連するか？", choices: ["国が滅びる心配", "隣国からの攻撃", "飢饉の心配", "天が落ちてくる心配"], answer: 3 },
+            { question: "「すべからく」の正しい意味は？", choices: ["全て", "当然～すべきである", "おそらく～だろう", "必ずしも～ない"], answer: 1 },
+            { question: "「弁が立つ」の反対の意味に近いのは？", choices: ["雄弁", "多弁", "口下手", "能弁"], answer: 2 }
+        ],
+        "古文単語・文法": [
+            { question: "古文単語「あたらし」の現代語訳は？", choices: ["新しい", "素晴らしい", "もったいない・惜しい", "珍しい"], answer: 2 },
+            { question: "助動詞「む」の活用形でないものは？", choices: ["ま", "めり", "む", "め"], answer: 1 },
+            { question: "「いとをかし」の「をかし」の主な意味は？", choices: ["おかしい・滑稽だ", "かわいそうだ", "恐ろしい", "趣がある・美しい"], answer: 3 },
+            { question: "『～ばこそあらめ、』の「あらめ」の助動詞「む（ん）」の意味は？", choices: ["推量", "意志", "仮定・婉曲", "適当・勧誘"], answer: 2 },
+            { question: "動詞「おどろく」の古文での主な意味は？", choices: ["目を覚ます・はっと気づく", "驚く", "騒ぐ", "怖がる"], answer: 0 },
+            { question: "形容詞「うし」の現代語訳は？", choices: ["うれしい", "つらい・いやだ", "美しい", "牛"], answer: 1 },
+            { question: "助動詞「き」と「けり」の意味上の違いで、「けり」が持つ主な意味は？", choices: ["直接経験の過去", "現在の推量", "完了", "詠嘆・過去の伝聞"], answer: 3 },
+            { question: "「やがて」という古文単語が持つ現代語にない意味は？", choices: ["すぐに・そのまま", "結局", "まもなく", "ようやく"], answer: 0 },
+            { question: "係り結び。「ぞ・なむ」が文中に来た場合、文末の活用形は？", choices: ["已然形", "連体形", "終止形", "命令形"], answer: 1 },
+            { question: "「あはれなり」が表す感情として最も遠いものは？", choices: ["しみじみとした趣がある", "かわいい", "滑稽だ", "気の毒だ"], answer: 2 }
+        ],
+        "漢文基礎": [
+            { question: "再読文字「将」。一般的な訓読は？", choices: ["すべからク～ベシ", "よろしく～ベシ", "いまダ～ず", "まさニ～ントす"], answer: 3 },
+            { question: "「五十歩百歩」の出典となった思想家は？", choices: ["孔子", "孟子", "老子", "荘子"], answer: 1 },
+            { question: "再読文字「未」の意味は？", choices: ["いまダ～ず (まだ～ない)", "～ントほっス (～するつもりだ)", "まさニ～ベシ (きっと～だろう)", "よろしく～ベシ (～すべきである)"], answer: 0 },
+            { question: "「漁夫の利」という故事成語が示す状況は？", choices: ["努力が報われる", "無駄な骨折り", "第三者が利益を得る", "予期せぬ幸運"], answer: 2 },
+            { question: "名詞を否定する際によく使われるのは「不」と「非」のどちら？", choices: ["不", "どちらも同じ", "文脈で変わる", "非"], answer: 3 },
+            { question: "「蛇足」の故事で、蛇の足を描き加えた人はどうなった？", choices: ["褒められた", "酒を飲み損ねた", "罰せられた", "蛇に噛まれた"], answer: 1 },
+            { question: "使役の助字で、目下の者に対してよく使われるのは？", choices: ["令 (しム)", "教 (しム)", "使 (しム)", "遣 (しム)"], answer: 2 },
+            { question: "「先ズ（まづ）」と読む再読文字はどれ？", choices: ["当 (まさニ～ベシ)", "須 (すべからク～ベシ)", "猶 (なホ～ごとシ)", "盍 (なんぞ～ざる)"], answer: 3},
+            { question: "「背水の陣」で兵士たちが必死に戦った理由は？", choices: ["褒美が約束されたから", "敵が弱かったから", "故郷が近かったから", "逃げ道がないから"], answer: 3 },
+            { question: "孔子が『論語』で最も重視した中心的な徳目は？", choices: ["仁", "義", "礼", "智"], answer: 0 }
+        ]
+    };
+
+    let currentQuizData = [];
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let correctAnswersCount = 0;
+    let timeLeft = 15; 
+    let timerInterval;
+    const BASE_POINTS_PER_QUESTION = 100; 
+    const TIME_BONUS_MULTIPLIER = 10; 
+
+    const startScreen = document.getElementById('start-screen');
+    const quizScreen = document.getElementById('quiz-screen');
+    const resultScreen = document.getElementById('result-screen');
+
+    const questionNumberEl = document.getElementById('question-number');
+    const questionThemeEl = document.getElementById('question-theme');
+    const questionTextEl = document.getElementById('question-text');
+    const choiceButtons = [
+        document.getElementById('choice0'),
+        document.getElementById('choice1'),
+        document.getElementById('choice2'),
+        document.getElementById('choice3')
+    ];
+    const feedbackEl = document.getElementById('feedback');
+    const nextQuestionBtn = document.getElementById('next-question-btn');
+    
+    const timeLeftEl = document.getElementById('time-left');
+    const progressBar = document.getElementById('progress-bar');
+    const currentScoreEl = document.getElementById('current-score');
+    
+    const finalScoreEl = document.getElementById('final-score');
+    const totalQuestionsResultEl = document.getElementById('total-questions-result');
+    const correctAnswersResultEl = document.getElementById('correct-answers-result');
+
+    function shuffleArray(array) { 
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    function startQuiz(theme) {
+        currentQuizData = [...allQuizzes[theme]]; 
+        shuffleArray(currentQuizData); 
+        currentQuestionIndex = 0;
+        score = 0;
+        correctAnswersCount = 0;
+        updateScoreDisplay();
+        
+        startScreen.style.display = 'none';
+        resultScreen.style.display = 'none';
+        quizScreen.style.display = 'block';
+        
+        loadNextQuestion();
+    }
+
+    function loadNextQuestion() {
+        if (currentQuestionIndex < currentQuizData.length) {
+            resetQuestionState();
+            const questionData = currentQuizData[currentQuestionIndex];
+            
+            questionNumberEl.textContent = `問題 ${currentQuestionIndex + 1} / ${currentQuizData.length}`;
+            questionThemeEl.textContent = `テーマ: ${getThemeFromQuestion(questionData)}`;
+            questionTextEl.innerHTML = questionData.question;
+            
+            questionData.choices.forEach((choice, index) => {
+                choiceButtons[index].innerHTML = choice;
+            });
+            
+            startTimer();
+            currentQuestionIndex++;
+        } else {
+            showResults();
+        }
+    }
+    
+    function getThemeFromQuestion(questionData) {
+        for (const theme in allQuizzes) {
+            if (allQuizzes[theme].some(q => q.question === questionData.question)) {
+                return theme;
+            }
+        }
+        return "不明";
+    }
+
+    function resetQuestionState() {
+        feedbackEl.textContent = '';
+        feedbackEl.className = '';
+        nextQuestionBtn.style.display = 'none';
+        choiceButtons.forEach(button => {
+            button.disabled = false;
+            button.className = 'choice-btn';
+        });
+        timeLeft = 15;
+        timeLeftEl.textContent = timeLeft;
+        progressBar.style.width = '100%';
+        progressBar.style.backgroundColor = '#5cb85c'; 
+    }
+
+    function startTimer() {
+        timeLeft = 15;
+        timeLeftEl.textContent = timeLeft;
+        progressBar.style.transition = 'width 0.1s linear'; 
+        progressBar.style.width = '100%';
+
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            timeLeftEl.textContent = timeLeft;
+            progressBar.style.width = (timeLeft / 15) * 100 + '%';
+
+            if (timeLeft <= 5 && timeLeft > 0) {
+                progressBar.style.backgroundColor = '#f0ad4e'; 
+            } else if (timeLeft <= 0) {
+                progressBar.style.backgroundColor = '#d9534f'; 
+                clearInterval(timerInterval);
+                feedbackEl.textContent = "時間切れ！";
+                feedbackEl.className = 'incorrect';
+                disableChoices();
+                showCorrectAnswer();
+                nextQuestionBtn.style.display = 'block';
+            }
+        }, 1000);
+    }
+
+    function selectAnswer(selectedIndex) {
+        clearInterval(timerInterval);
+        disableChoices();
+
+        const questionData = currentQuizData[currentQuestionIndex - 1]; 
+        const correctAnswerIndex = questionData.answer;
+
+        if (selectedIndex === correctAnswerIndex) {
+            const pointsEarned = BASE_POINTS_PER_QUESTION + (timeLeft * TIME_BONUS_MULTIPLIER);
+            score += pointsEarned;
+            correctAnswersCount++;
+            feedbackEl.textContent = `正解！ +${pointsEarned}点 (残り${timeLeft}秒ボーナス)`;
+            feedbackEl.className = 'correct';
+            choiceButtons[selectedIndex].classList.add('correct');
+        } else {
+            feedbackEl.textContent = "不正解...";
+            feedbackEl.className = 'incorrect';
+            choiceButtons[selectedIndex].classList.add('incorrect');
+            choiceButtons[correctAnswerIndex].classList.add('correct'); 
+        }
+        updateScoreDisplay();
+        nextQuestionBtn.style.display = 'block';
+    }
+
+    function disableChoices() {
+        choiceButtons.forEach(button => button.disabled = true);
+    }
+    
+    function showCorrectAnswer() {
+        const questionData = currentQuizData[currentQuestionIndex - 1]; 
+        choiceButtons[questionData.answer].classList.add('correct');
+    }
+
+    function updateScoreDisplay() {
+        currentScoreEl.textContent = score;
+    }
+
+    function showResults() {
+        quizScreen.style.display = 'none';
+        resultScreen.style.display = 'block';
+        finalScoreEl.textContent = score;
+        totalQuestionsResultEl.textContent = currentQuizData.length; 
+        correctAnswersResultEl.textContent = correctAnswersCount;
+    }
+
+    function restartQuiz() {
+        resultScreen.style.display = 'none';
+        startScreen.style.display = 'block';
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        quizScreen.style.display = 'none';
+        resultScreen.style.display = 'none';
+        startScreen.style.display = 'block';
+    });
+
+</script>
+
+</body>
+</html>
